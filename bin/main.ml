@@ -1,10 +1,7 @@
 open Liblambda
 
 let () =
-  let lexbuf =
-    let input = Preprocessor.preprocess_lambda stdin in
-    Lexing.from_string input
-  in
+  let lexbuf = Lexing.from_channel stdin in
   let stmts, expr =
     try Parser.main Lexer.main lexbuf with
     | Parsing.Parse_error ->
