@@ -20,5 +20,5 @@ let () =
     let expr' = Interpreter.step env expr in
     if expr' = expr then expr' else step_loop expr'
   in
+  (* print_endline (Ast.string_of_expr (Interpreter.eval env expr)) *)
   ignore (step_loop expr)
-(* print_endline (Ast.string_of_expr (Interpreter.eval env expr)) *)

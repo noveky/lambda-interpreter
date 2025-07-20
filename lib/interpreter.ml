@@ -69,10 +69,14 @@ and eval env expr =
     match expr with
     | Var x when List.mem_assoc x env -> eval env (List.assoc x env)
     | App (e1, e2) -> (
-      let e2' = eval env e2 in
-      match eval env e1 with
-      | Abs (x, e) when is_value e2' -> eval env (subst x e2' e)
-      | e1' -> App (e1', e2'))
+      let e1' = eval env e1 in
+      match e1' with
+      | Abs (x, e) when not (List.mem x (free_vars e)) -> e (* eta-reduction *)
+      | Abs (x, e) ->
+        let e2' = eval env e2 in
+        if is_value e2' then eval env (subst x e2' e)
+        (* beta-reduction *) else App (e1', e2')
+      | _ -> App (e1', eval env e2))
     | Let (x, e1, e2) -> eval env (App (Abs (x, e2), e1))
     | If (e1, e2, e3) -> (
       match eval env e1 with
@@ -104,7 +108,10 @@ and step env expr =
   try
     (* print_endline ("  Stepping " ^ string_of_expr expr); *)
     match expr with
-    | App (Abs (x1, e1), v2) when is_value v2 -> subst x1 v2 e1
+    | App (Abs (x1, e1), v2) when is_value v2 ->
+      subst x1 v2 e1 (* beta-reduction *)
+    | App (Abs (x1, e1), _) when not (List.mem x1 (free_vars e1)) ->
+      e1 (* eta-reduction *)
     | App (Var x1, v2) when is_value v2 && List.mem_assoc x1 env ->
       App (List.assoc x1 env, v2)
     | App (e1, v2) when is_value v2 -> App (step env e1, v2)

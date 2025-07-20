@@ -27,6 +27,6 @@ churchbool = λb. if b then tru else fls;
 realnat = λm. m (λx. succ x) 0;
 churchnat = fix (λf. λm. if iszero m then c0 else scc (f (pred m)));
 
-factorial = fix (λfct. λn. if realeq n c0 then c1 else (times n (fct (prd n))));
+factorial = fix (λfct. λn. (equal n c0) c1 (times n (fct (prd n))));
 
 realnat (factorial (churchnat 5))
