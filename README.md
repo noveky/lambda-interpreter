@@ -3,5 +3,5 @@
 ## Usage
 
 ```bash
-dune exec lambda < in.txt
+dune exec lambda < test/in.txt
 ```
