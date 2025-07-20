@@ -4,19 +4,20 @@ open Ast
 
 %token <string> IDENT
 %token <int> NUMBER
-%token LAMBDA DOT LPAREN RPAREN SEMICOLON LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED
+%token <string> STRING
+%token LAMBDA DOT LPAREN RPAREN SEMICOLON LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED INCLUDE STEP
 %token EOF
 
 %right IF THEN ELSE
 %nonassoc ISZERO SUCC PRED
 
 %start main
-%type <Ast.stmt list * Ast.expr> main
+%type <Ast.stmt list> main
 
 %%
 
 main:
-  | stmt_list expr EOF  { $1, $2 }
+  | stmt_list EOF  { $1 }
 
 stmt_list:
   | stmt_list stmt SEMICOLON  { $1 @ [$2] }
@@ -24,6 +25,9 @@ stmt_list:
 
 stmt:
   | IDENT EQUAL expr  { Assign ($1, $3) }
+  | expr  { Eval $1 }
+  | INCLUDE STRING  { Include $2 }
+  | STEP expr  { Step $2 }
 
 expr:
   | LET IDENT EQUAL expr IN expr  { Let ($2, $4, $6) }

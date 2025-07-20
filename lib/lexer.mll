@@ -25,5 +25,9 @@ rule main = parse
                             { IDENT (Lexing.lexeme lexbuf) }
   | '0' | ['1'-'9']['0'-'9']* as n
                             { NUMBER (int_of_string n) }
+  | "\"" ([^ '"']* as s) "\""
+                            { STRING s }
+  | "@include"              { INCLUDE }
+  | "@step"                 { STEP }
   | eof                     { EOF }
   | _ as c                  { failwith (Printf.sprintf "Unrecognized char: %c" c) }

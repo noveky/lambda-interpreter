@@ -3,5 +3,7 @@
 ## Usage
 
 ```bash
-dune exec lambda < test/in.txt
+chmod +x lambda
+cd test
+../lambda main.lam
 ```

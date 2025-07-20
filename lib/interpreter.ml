@@ -55,14 +55,39 @@ let is_value = function
   | Val _ -> true
   | _ -> false
 
-let rec exec_stmts env stmts =
+let rec exec_file env ic =
+  let lexbuf = Lexing.from_channel ic in
+  let stmts = Parser.main Lexer.main lexbuf in
+  let env' = exec_stmts [] stmts in
+  close_in ic;
+  env' @ env
+
+and exec_stmts env stmts =
   match stmts with
   | [] -> env
   | stmt :: rest ->
     let env' = exec_stmt env stmt in
     exec_stmts env' rest
 
-and exec_stmt env = function Assign (x, e) -> (x, e) :: env
+and exec_stmt env = function
+  | Assign (x, e) -> (x, e) :: env
+  | Include filename -> exec_file env (open_in filename)
+  | Eval e ->
+    print_endline ("▶ " ^ Ast.string_of_expr e ^ ";");
+    let e' = eval env e in
+    print_endline (Ast.string_of_expr e');
+    env
+  | Step e ->
+    print_endline ("▸▸ " ^ Ast.string_of_expr e ^ ";");
+    let rec step_loop expr =
+      let expr' = step env expr in
+      if expr' = expr then expr'
+      else (
+        print_endline (Ast.string_of_expr expr');
+        step_loop expr')
+    in
+    let _ = step_loop e in
+    env
 
 and eval env expr =
   try

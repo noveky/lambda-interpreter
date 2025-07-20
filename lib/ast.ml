@@ -1,4 +1,8 @@
-type stmt = Assign of string * expr
+type stmt =
+  | Assign of string * expr
+  | Include of string
+  | Eval of expr
+  | Step of expr
 
 and expr =
   | Var of string
