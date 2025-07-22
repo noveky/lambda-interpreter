@@ -1,9 +1,14 @@
 # Lambda Calculus Interpreter
 
+## Installation
+
+```bash
+dune install
+```
+
 ## Usage
 
 ```bash
-chmod +x lambda
 cd test
-../lambda main.lam
+lambda main.lam
 ```

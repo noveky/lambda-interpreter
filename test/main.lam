@@ -2,8 +2,8 @@
 
 factorial = fix (λfct. λn. (equal n c0) c1 (times n (fct (prd n))));
 
-# Evaluate factorial of 5 with step output
-@step realnat (factorial (churchnat 5));
+# Evaluate factorial of 1 with step output
+@step realnat (factorial c1);
 
 # Evaluate factorial of 6
 realnat (factorial (churchnat 6));
