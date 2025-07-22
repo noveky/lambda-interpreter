@@ -1,7 +1,5 @@
 open Ast
 
-exception Wrong_error
-
 let fresh_var =
   let counter = ref 0 in
   fun () ->
@@ -18,16 +16,16 @@ let rec free_vars = function
   | IsZero e | Succ e | Pred e -> free_vars e
   | _ -> []
 
-let rec replace_var x s = function
+(* alpha-conversion *)
+let rec rename x s = function
   | Var y when y = x -> Var s
-  | Abs (y, e) -> Abs ((if y = x then s else y), replace_var x s e)
-  | App (e1, e2) -> App (replace_var x s e1, replace_var x s e2)
-  | Let (y, e1, e2) -> Let (y, replace_var x s e1, replace_var x s e2)
-  | If (e1, e2, e3) ->
-    If (replace_var x s e1, replace_var x s e2, replace_var x s e3)
-  | IsZero e -> IsZero (replace_var x s e)
-  | Succ e -> Succ (replace_var x s e)
-  | Pred e -> Pred (replace_var x s e)
+  | Abs (y, e) -> Abs ((if y = x then s else y), rename x s e)
+  | App (e1, e2) -> App (rename x s e1, rename x s e2)
+  | Let (y, e1, e2) -> Let (y, rename x s e1, rename x s e2)
+  | If (e1, e2, e3) -> If (rename x s e1, rename x s e2, rename x s e3)
+  | IsZero e -> IsZero (rename x s e)
+  | Succ e -> Succ (rename x s e)
+  | Pred e -> Pred (rename x s e)
   | e -> e
 
 let rec subst x s = function
@@ -36,7 +34,7 @@ let rec subst x s = function
   | Abs (y, e) when y = x -> Abs (y, e) (* shadowed, stop *)
   | Abs (y, e) when List.mem y (free_vars s) ->
     let fresh = fresh_var () in
-    Abs (fresh, subst x s (replace_var y fresh e))
+    Abs (fresh, subst x s (rename y fresh e))
     (* avoid capture *)
   | Abs (y, e) -> Abs (y, subst x s e)
   | App (e1, e2) -> App (subst x s e1, subst x s e2)
@@ -73,101 +71,96 @@ and exec_stmt env = function
   | Assign (x, e) -> (x, e) :: env
   | Include filename -> exec_file env (open_in filename)
   | Eval e ->
-    print_endline ("▶ " ^ Ast.string_of_expr e ^ ";");
+    print_endline (Ast.string_of_expr e ^ ";");
     let e' = eval env e in
-    print_endline (Ast.string_of_expr e');
+    print_endline ("▶ " ^ Ast.string_of_expr e');
     env
   | Step e ->
-    print_endline ("▸▸ " ^ Ast.string_of_expr e ^ ";");
+    print_endline (Ast.string_of_expr e ^ ";");
     let rec step_loop expr =
       let expr' = step env expr in
       if expr' = expr then expr'
       else (
-        print_endline (Ast.string_of_expr expr');
+        print_endline ("▸▸ " ^ Ast.string_of_expr expr');
         step_loop expr')
     in
     let _ = step_loop e in
     env
 
-and eval env expr =
-  try
-    match expr with
-    | Var x when List.mem_assoc x env -> eval env (List.assoc x env)
-    | App (e1, e2) -> (
-      let e1' = eval env e1 in
-      match e1' with
-      | Abs (x, e) when not (List.mem x (free_vars e)) -> e (* eta-reduction *)
-      | Abs (x, e) ->
-        let e2' = eval env e2 in
-        if is_value e2' then eval env (subst x e2' e)
-        (* beta-reduction *) else App (e1', e2')
-      | _ -> App (e1', eval env e2))
-    | Let (x, e1, e2) -> eval env (App (Abs (x, e2), e1))
-    | If (e1, e2, e3) -> (
-      match eval env e1 with
-      | Val (Bool true) -> eval env e2
-      | Val (Bool false) -> eval env e3
-      | v when is_value v -> raise Wrong_error
-      | e1' -> If (e1', e2, e3))
-    | IsZero e -> (
-      match eval env e with
-      | Val (Num 0) -> Val (Bool true)
-      | Val (Num _) -> Val (Bool false)
-      | v when is_value v -> raise Wrong_error
-      | e' -> IsZero e')
-    | Succ e -> (
-      match eval env e with
-      | Val (Num n) -> Val (Num (n + 1))
-      | v when is_value v -> raise Wrong_error
-      | e' -> Succ e')
-    | Pred e -> (
-      match eval env e with
-      | Val (Num 0) -> Val (Num 0)
-      | Val (Num n) -> Val (Num (n - 1))
-      | v when is_value v -> raise Wrong_error
-      | e' -> Pred e')
-    | e -> e
-  with Wrong_error -> Wrong
+and eval env = function
+  | Var x when List.mem_assoc x env -> eval env (List.assoc x env)
+  | App (e1, e2) -> (
+    let e1' = eval env e1 in
+    match e1' with
+    | Abs (x, e) when not (List.mem x (free_vars e)) -> e (* eta-reduction *)
+    | Abs (x, e) ->
+      let e2' = eval env e2 in
+      if is_value e2' then eval env (subst x e2' e)
+      (* beta-reduction *) else App (e1', e2')
+    | _ -> App (e1', eval env e2))
+  | Let (x, e1, e2) -> eval env (App (Abs (x, e2), e1))
+  | If (e1, e2, e3) -> (
+    match eval env e1 with
+    | Val (Bool true) -> eval env e2
+    | Val (Bool false) -> eval env e3
+    | v when is_value v -> Wrong
+    | e1' -> If (e1', e2, e3))
+  | IsZero e -> (
+    match eval env e with
+    | Val (Num 0) -> Val (Bool true)
+    | Val (Num _) -> Val (Bool false)
+    | v when is_value v -> Wrong
+    | e' -> IsZero e')
+  | Succ e -> (
+    match eval env e with
+    | Val (Num n) -> Val (Num (n + 1))
+    | v when is_value v -> Wrong
+    | e' -> Succ e')
+  | Pred e -> (
+    match eval env e with
+    | Val (Num 0) -> Val (Num 0)
+    | Val (Num n) -> Val (Num (n - 1))
+    | v when is_value v -> Wrong
+    | e' -> Pred e')
+  | e -> e
 
-and step env expr =
-  try
-    (* print_endline ("  Stepping " ^ string_of_expr expr); *)
-    match expr with
-    | App (Abs (x1, e1), v2) when is_value v2 ->
-      subst x1 v2 e1 (* beta-reduction *)
-    | App (Abs (x1, e1), _) when not (List.mem x1 (free_vars e1)) ->
-      e1 (* eta-reduction *)
-    | App (Var x1, v2) when is_value v2 && List.mem_assoc x1 env ->
-      App (List.assoc x1 env, v2)
-    | App (e1, v2) when is_value v2 -> App (step env e1, v2)
-    | App (Abs (x1, e1), e2) -> App (Abs (x1, e1), step env e2)
-    | App (e1, Var x2) when List.mem_assoc x2 env -> App (e1, List.assoc x2 env)
-    | App (e1, e2) ->
-      let e1' = step env e1 in
-      if e1' <> e1 then App (e1', e2) else App (e1, step env e2)
-    | Let (x, e1, e2) -> App (Abs (x, e2), e1)
-    | If (e1, e2, e3) -> (
-      match e1 with
-      | Val (Bool true) -> e2
-      | Val (Bool false) -> e3
-      | v when is_value v -> raise Wrong_error
-      | _ -> If (step env e1, e2, e3))
-    | IsZero e -> (
-      match e with
-      | Val (Num 0) -> Val (Bool true)
-      | Val (Num _) -> Val (Bool false)
-      | v when is_value v -> raise Wrong_error
-      | _ -> IsZero (step env e))
-    | Succ e -> (
-      match e with
-      | Val (Num n) -> Val (Num (n + 1))
-      | v when is_value v -> raise Wrong_error
-      | _ -> Succ (step env e))
-    | Pred e -> (
-      match e with
-      | Val (Num 0) -> Val (Num 0)
-      | Val (Num n) -> Val (Num (n - 1))
-      | v when is_value v -> raise Wrong_error
-      | _ -> Pred (step env e))
-    | e -> e
-  with Wrong_error -> Wrong
+and step env = function
+  | Var x when List.mem_assoc x env -> List.assoc x env
+  | App (Abs (x1, e1), _) when not (List.mem x1 (free_vars e1)) ->
+    e1 (* eta-reduction *)
+  | App (Abs (x1, e1), v2) when is_value v2 ->
+    subst x1 v2 e1 (* beta-reduction *)
+  | App (Var x1, v2) when is_value v2 && List.mem_assoc x1 env ->
+    App (List.assoc x1 env, v2)
+  | App (e1, v2) when is_value v2 -> App (step env e1, v2)
+  | App (Abs (x1, e1), e2) -> App (Abs (x1, e1), step env e2)
+  | App (e1, Var x2) when List.mem_assoc x2 env -> App (e1, List.assoc x2 env)
+  | App (e1, e2) ->
+    let e1' = step env e1 in
+    if e1' <> e1 then App (e1', e2) else App (e1, step env e2)
+  | Let (x, v1, e2) when is_value v1 -> App (Abs (x, e2), v1)
+  | Let (x, e1, e2) -> Let (x, step env e1, e2)
+  | If (e1, e2, e3) -> (
+    match e1 with
+    | Val (Bool true) -> e2
+    | Val (Bool false) -> e3
+    | v when is_value v -> Wrong
+    | _ -> If (step env e1, e2, e3))
+  | IsZero e -> (
+    match e with
+    | Val (Num 0) -> Val (Bool true)
+    | Val (Num _) -> Val (Bool false)
+    | v when is_value v -> Wrong
+    | _ -> IsZero (step env e))
+  | Succ e -> (
+    match e with
+    | Val (Num n) -> Val (Num (n + 1))
+    | v when is_value v -> Wrong
+    | _ -> Succ (step env e))
+  | Pred e -> (
+    match e with
+    | Val (Num 0) -> Val (Num 0)
+    | Val (Num n) -> Val (Num (n - 1))
+    | v when is_value v -> Wrong
+    | _ -> Pred (step env e))
+  | e -> e

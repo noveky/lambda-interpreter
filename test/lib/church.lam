@@ -12,6 +12,10 @@ fst = λp. p tru;
 snd = λp. p fls;
 
 and = λb. λc. b c fls;
+or = λb. λc. b tru c;
+not = λb. b fls tru;
+xor = λa. λb. a (not b) b;
+
 iszro = λm. m (λx. fls) tru;
 equal = λm. λn.
                 and (iszro (m prd n))
