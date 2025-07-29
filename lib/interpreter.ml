@@ -98,7 +98,8 @@ and eval env = function
       if is_value e2' then eval env (subst x e2' e)
       (* beta-reduction *) else App (e1', e2')
     | _ -> App (e1', eval env e2))
-  | Let (x, e1, e2) -> eval env (App (Abs (x, e2), e1))
+  | Let (x, v1, e2) when is_value v1 -> eval env (App (Abs (x, e2), v1))
+  | Let (x, e1, e2) -> eval env (Let (x, eval env e1, e2))
   | If (e1, e2, e3) -> (
     match eval env e1 with
     | Val (Bool true) -> eval env e2
