@@ -1,37 +1,42 @@
-tru = λt. λf. t;
-fls = λt. λf. f;
-c0 = λs. λz. z;
-c1 = λs. λz. s z;
-c2 = λs. λz. s (s z);
-c3 = λs. λz. s (s (s z));
+tru = λt. λf. t;;
+fls = λt. λf. f;;
+c0 = λs. λz. z;;
+c1 = λs. λz. s z;;
+c2 = λs. λz. s (s z);;
+c3 = λs. λz. s (s (s z));;
+c4 = λs. λz. s (s (s (s z)));;
+c5 = λs. λz. s (s (s (s (s z))));;
+c6 = λs. λz. s (s (s (s (s (s z)))));;
+c7 = λs. λz. s (s (s (s (s (s (s z))))));;
+c8 = λs. λz. s (s (s (s (s (s (s (s z)))))));;
 
-fix = λf. (λx. f (λy. x x y)) (λx. f (λy. x x y));
+fix = λf. (λx. f (λy. x x y)) (λx. f (λy. x x y));;
 
-pair = λf. λs. λb. b f s;
-fst = λp. p tru;
-snd = λp. p fls;
+pair = λf. λs. λb. b f s;;
+fst = λp. p tru;;
+snd = λp. p fls;;
 
-and = λb. λc. b c fls;
-or = λb. λc. b tru c;
-not = λb. b fls tru;
-xor = λa. λb. a (not b) b;
+and = λb. λc. b c fls;;
+or = λb. λc. b tru c;;
+not = λb. b fls tru;;
+xor = λa. λb. a (not b) b;;
 
-iszro = λm. m (λx. fls) tru;
+iszro = λm. m (λx. fls) tru;;
 equal = λm. λn.
                 and (iszro (m prd n))
-                    (iszro (n prd m));
-scc = λn. λs. λz. s (n s z);
-prd = λm. fst (m (λp. pair (snd p) (plus c1 (snd p))) (pair c0 c0));
-plus = λm. λn. λs. λz. m s (n s z);
-times = λm. λn. m (plus n) c0;
+                    (iszro (n prd m));;
+scc = λn. λs. λz. s (n s z);;
+prd = λm. fst (m (λp. pair (snd p) (plus c1 (snd p))) (pair c0 c0));;
+plus = λm. λn. λs. λz. m s (n s z);;
+times = λm. λn. m (plus n) c0;;
 
-realeq = λm. λn. (equal m n) true false;
-realbool = λb. b true false;
-churchbool = λb. if b then tru else fls;
-realnat = λm. m (λx. succ x) 0;
-churchnat = fix (λf. λm. if iszero m then c0 else scc (f (pred m)));
+realeq = λm. λn. (equal m n) @true @false;;
+realbool = λb. b @true @false;;
+churchbool = λb. @if b @then tru @else fls;;
+realnat = λm. m (λx. @succ x) 0;;
+churchnat = fix (λf. λm. @if @iszero m @then c0 @else scc (f (@pred m)));;
 
-nil = λc. λn. n;
-cons = λh. λt. λc. λn. c h (t c n);
-head = λl. l (λh. λt. h) fls;
-tail = λl. fst (l (λh. λt. pair fls (cons h t)) (pair tru nil));
+nil = λc. λn. n;;
+cons = λh. λt. λc. λn. c h (t c n);;
+head = λl. l (λh. λt. h) fls;;
+tail = λl. fst (l (λh. λt. pair fls (cons h t)) (pair tru nil));;

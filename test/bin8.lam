@@ -1,0 +1,117 @@
+@include "lib/church.lam";;
+
+# 8-bit accessors
+b0_8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b0);;
+b1_8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b1);;
+b2_8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b2);;
+b3_8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b3);;
+b4_8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b4);;
+b5_8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b5);;
+b6_8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b6);;
+b7_8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b7);;
+
+# 8-bit Carry Lookahead Full Adder
+cla8 = \A. \B. \C0.
+    let A0 = b0_8 A in
+    let A1 = b1_8 A in
+    let A2 = b2_8 A in
+    let A3 = b3_8 A in
+    let A4 = b4_8 A in
+    let A5 = b5_8 A in
+    let A6 = b6_8 A in
+    let A7 = b7_8 A in
+    let B0 = b0_8 B in
+    let B1 = b1_8 B in
+    let B2 = b2_8 B in
+    let B3 = b3_8 B in
+    let B4 = b4_8 B in
+    let B5 = b5_8 B in
+    let B6 = b6_8 B in
+    let B7 = b7_8 B in
+    let P0 = xor A0 B0 in
+    let P1 = xor A1 B1 in
+    let P2 = xor A2 B2 in
+    let P3 = xor A3 B3 in
+    let P4 = xor A4 B4 in
+    let P5 = xor A5 B5 in
+    let P6 = xor A6 B6 in
+    let P7 = xor A7 B7 in
+    let G0 = and A0 B0 in
+    let G1 = and A1 B1 in
+    let G2 = and A2 B2 in
+    let G3 = and A3 B3 in
+    let G4 = and A4 B4 in
+    let G5 = and A5 B5 in
+    let G6 = and A6 B6 in
+    let G7 = and A7 B7 in
+    let C1 = or G0 (and P0 C0) in
+    let C2 = or G1 (and P1 C1) in
+    let C3 = or G2 (and P2 C2) in
+    let C4 = or G3 (and P3 C3) in
+    let C5 = or G4 (and P4 C4) in
+    let C6 = or G5 (and P5 C5) in
+    let C7 = or G6 (and P6 C6) in
+    let C8 = or G7 (and P7 C7) in
+    let S0 = xor P0 C0 in
+    let S1 = xor P1 C1 in
+    let S2 = xor P2 C2 in
+    let S3 = xor P3 C3 in
+    let S4 = xor P4 C4 in
+    let S5 = xor P5 C5 in
+    let S6 = xor P6 C6 in
+    let S7 = xor P7 C7 in
+    let sum = \f. f S7 S6 S5 S4 S3 S2 S1 S0 in
+    pair sum C8;;
+
+bit_to_nat = \b. b c1 c0;;
+
+bin8_to_nat = \N.
+    let N0 = b0_8 N in
+    let N1 = b1_8 N in
+    let N2 = b2_8 N in
+    let N3 = b3_8 N in
+    let N4 = b4_8 N in
+    let N5 = b5_8 N in
+    let N6 = b6_8 N in
+    let N7 = b7_8 N in
+    plus
+        (plus
+            (plus
+                (plus (times (times c8 (times c2 (times c2 (times c2 c2)))) (bit_to_nat N7)) 
+                      (times (times c4 (times c2 (times c2 (times c2 c2)))) (bit_to_nat N6)))
+                (plus (times (times c2 (times c2 (times c2 (times c2 c2)))) (bit_to_nat N5)) 
+                      (times (times c2 (times c2 (times c2 c2))) (bit_to_nat N4))))
+            (plus (times c8 (bit_to_nat N3)) (times c4 (bit_to_nat N2))))
+        (plus (times c2 (bit_to_nat N1)) (bit_to_nat N0));;
+
+disp_bit = \b. realnat (bit_to_nat b);;
+
+disp8 = \N.
+    let N0 = b0_8 N in
+    let N1 = b1_8 N in
+    let N2 = b2_8 N in
+    let N3 = b3_8 N in
+    let N4 = b4_8 N in
+    let N5 = b5_8 N in
+    let N6 = b6_8 N in
+    let N7 = b7_8 N in
+    @tuple (disp_bit N7) (disp_bit N6) (disp_bit N5) (disp_bit N4) 
+           (disp_bit N3) (disp_bit N2) (disp_bit N1) (disp_bit N0);;
+
+nat_to_bit = \n. @if @iszero n @then fls @else tru;;
+
+nats_to_bin8 = \b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. 
+    \f. f (nat_to_bit b7) (nat_to_bit b6) (nat_to_bit b5) (nat_to_bit b4) 
+          (nat_to_bit b3) (nat_to_bit b2) (nat_to_bit b1) (nat_to_bit b0);;
+
+let A = nats_to_bin8 1 0 0 1 0 1 0 1 in
+let B = nats_to_bin8 0 1 0 1 0 1 1 0 in
+let C0 = nat_to_bit 0 in
+let result = cla8 A B C0 in
+let sum = fst result in
+let carry = snd result in
+@print "149 (10010101) + 86 (01010110) =";
+@print (realnat (bin8_to_nat sum));
+@print (disp8 sum);
+@print "carry =";
+@print (disp_bit carry);;

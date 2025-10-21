@@ -13,7 +13,9 @@ let rec free_vars = function
   | Let (y, e1, e2) ->
     free_vars e1 @ List.filter (fun x -> x <> y) (free_vars e2)
   | If (e1, e2, e3) -> free_vars e1 @ free_vars e2 @ free_vars e3
-  | IsZero e | Succ e | Pred e -> free_vars e
+  | Seq (e1, e2) -> free_vars e1 @ free_vars e2
+  | IsZero e | Succ e | Pred e | Print e -> free_vars e
+  | Tuple l -> List.concat (List.map free_vars l)
   | _ -> []
 
 (* alpha-conversion *)
@@ -21,11 +23,15 @@ let rec rename x s = function
   | Var y when y = x -> Var s
   | Abs (y, e) -> Abs ((if y = x then s else y), rename x s e)
   | App (e1, e2) -> App (rename x s e1, rename x s e2)
-  | Let (y, e1, e2) -> Let (y, rename x s e1, rename x s e2)
+  | Let (y, e1, e2) ->
+    Let ((if y = x then s else y), rename x s e1, rename x s e2)
   | If (e1, e2, e3) -> If (rename x s e1, rename x s e2, rename x s e3)
+  | Seq (e1, e2) -> Seq (rename x s e1, rename x s e2)
   | IsZero e -> IsZero (rename x s e)
   | Succ e -> Succ (rename x s e)
   | Pred e -> Pred (rename x s e)
+  | Print e -> Print (rename x s e)
+  | Tuple l -> Tuple (List.map (rename x s) l)
   | e -> e
 
 let rec subst x s = function
@@ -42,16 +48,15 @@ let rec subst x s = function
     Let (y, subst x s e1, e2) (* shadowed, don't subst in e2 *)
   | Let (y, e1, e2) -> Let (y, subst x s e1, subst x s e2)
   | If (e1, e2, e3) -> If (subst x s e1, subst x s e2, subst x s e3)
+  | Seq (e1, e2) -> Seq (subst x s e1, subst x s e2)
   | IsZero e -> IsZero (subst x s e)
   | Succ e -> Succ (subst x s e)
   | Pred e -> Pred (subst x s e)
+  | Print e -> Print (subst x s e)
+  | Tuple l -> Tuple (List.map (subst x s) l)
   | e -> e
 
-let is_value = function
-  | Var _ -> true
-  | Abs _ -> true
-  | Val _ -> true
-  | _ -> false
+let is_value = function Var _ | Abs _ | Val _ -> true | _ -> false
 
 let rec exec_file env ic =
   let lexbuf = Lexing.from_channel ic in
@@ -71,12 +76,12 @@ and exec_stmt env = function
   | Assign (x, e) -> (x, e) :: env
   | Include filename -> exec_file env (open_in filename)
   | Eval e ->
-    print_endline (Ast.string_of_expr e ^ ";");
+    print_endline ("▶ " ^ Ast.string_of_expr e ^ ";;");
     let e' = eval env e in
-    print_endline ("▶ " ^ Ast.string_of_expr e');
+    print_endline (Ast.string_of_expr e');
     env
   | Step e ->
-    print_endline (Ast.string_of_expr e ^ ";");
+    print_endline ("▸▸ " ^ Ast.string_of_expr e ^ ";;");
     let rec step_loop expr =
       let expr' = step env expr in
       if expr' = expr then expr'
@@ -87,7 +92,11 @@ and exec_stmt env = function
     let _ = step_loop e in
     env
 
-and eval env = function
+and eval env e =
+  let e' = step env e in
+  if e' <> e then eval env e' else e
+
+(*and eval env e = function
   | Var x when List.mem_assoc x env -> eval env (List.assoc x env)
   | App (e1, e2) -> (
     let e1' = eval env e1 in
@@ -98,14 +107,18 @@ and eval env = function
       if is_value e2' then eval env (subst x e2' e)
       (* beta-reduction *) else App (e1', e2')
     | _ -> App (e1', eval env e2))
-  | Let (x, v1, e2) when is_value v1 -> eval env (App (Abs (x, e2), v1))
-  | Let (x, e1, e2) -> eval env (Let (x, eval env e1, e2))
+  | Let (x, e1, e2) ->
+    let e1' = eval env e1 in
+    if is_value e1' then eval env (App (Abs (x, e2), e1')) else Let (x, e1', e2)
   | If (e1, e2, e3) -> (
     match eval env e1 with
     | Val (Bool true) -> eval env e2
     | Val (Bool false) -> eval env e3
     | v when is_value v -> Wrong
-    | e1' -> If (e1', e2, e3))
+    | e' -> If (e', e2, e3))
+  | Seq (e1, e2) ->
+    let _ = eval env e1 in
+    eval env e2
   | IsZero e -> (
     match eval env e with
     | Val (Num 0) -> Val (Bool true)
@@ -123,10 +136,14 @@ and eval env = function
     | Val (Num n) -> Val (Num (n - 1))
     | v when is_value v -> Wrong
     | e' -> Pred e')
-  | e -> e
+  | Print e ->
+    print_endline (Ast.string_of_expr (eval env e));
+    Val Unit
+  | e -> e*)
 
 and step env = function
   | Var x when List.mem_assoc x env -> List.assoc x env
+  | App (Tuple l1, e2) -> Tuple (l1 @ [ e2 ])
   | App (Abs (x1, e1), _) when not (List.mem x1 (free_vars e1)) ->
     e1 (* eta-reduction *)
   | App (Abs (x1, e1), v2) when is_value v2 ->
@@ -147,6 +164,10 @@ and step env = function
     | Val (Bool false) -> e3
     | v when is_value v -> Wrong
     | _ -> If (step env e1, e2, e3))
+  | Seq (v1, e2) when is_value v1 -> e2
+  | Seq (e1, e2) ->
+    let e1' = step env e1 in
+    if e1' <> e1 then Seq (e1', e2) else Seq (e1, step env e2)
   | IsZero e -> (
     match e with
     | Val (Num 0) -> Val (Bool true)
@@ -164,4 +185,11 @@ and step env = function
     | Val (Num n) -> Val (Num (n - 1))
     | v when is_value v -> Wrong
     | _ -> Pred (step env e))
+  | Print e ->
+    let e' = step env e in
+    if e' <> e then Print e'
+    else (
+      print_endline (Ast.string_of_expr (step env e));
+      Val Unit)
+  | Tuple l -> Tuple (List.map (step env) l)
   | e -> e
