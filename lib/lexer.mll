@@ -3,8 +3,9 @@ open Parser
 }
 
 rule main = parse
-  | [' ' '\t' '\r' '\n']    { main lexbuf }
-  | "#" [^ '\n']* '\n'     { main lexbuf }
+  | [' ' '\t' '\r']         { main lexbuf }
+  | '\n'                    { Lexing.new_line lexbuf; main lexbuf }
+  | "#" [^ '\n']* '\n'      { Lexing.new_line lexbuf; main lexbuf }
   | "λ" | "\\"              { LAMBDA }
   | "."                     { DOT }
   | "("                     { LPAREN }
@@ -34,4 +35,8 @@ rule main = parse
   | "@eval"                 { EVAL }
   | "@step"                 { STEP }
   | eof                     { EOF }
-  | _ as c                  { failwith (Printf.sprintf "Unrecognized char: %c" c) }
+  | _ as c                  {
+      let pos = lexbuf.Lexing.lex_curr_p in
+      failwith (Printf.sprintf "Unexpected character '%c' at line %d, column %d"
+        c pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1))
+    }

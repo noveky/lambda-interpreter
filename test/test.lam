@@ -1,11 +1,11 @@
-let x = 1 in let y = 2 in x;y;;
+@eval let x = 1 in let y = 2 in x;y;;
 
-@if @if @true @then @false @else 0 @then @if @true @then 4 @else 5 @else @if @true @then 2 @else 3;;
+@eval @if @if @true @then @false @else 0 @then @if @true @then 4 @else 5 @else @if @true @then 2 @else 3;;
 
-@if let x = 1 in @true; @true @then @false @else 5;;
+@eval @if let x = 1 in @true; @true @then @false @else 5;;
 
-\x.\y. x y z;;
+@eval \x.\y. x y z;;
 
-let x = 1 in let y = \z.z in x;;
+@eval let x = 1 in let y = \z.z in x;;
 
-@tuple 1 2 3 4;;
+@eval @tuple 1 2 3 4;;

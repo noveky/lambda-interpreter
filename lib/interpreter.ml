@@ -58,12 +58,63 @@ let rec subst x s = function
 
 let is_value = function Var _ | Abs _ | Val _ -> true | _ -> false
 
-let rec exec_file env ic =
-  let lexbuf = Lexing.from_channel ic in
-  let stmts = Parser.main Lexer.main lexbuf in
-  let env' = exec_stmts [] stmts in
-  close_in ic;
-  env' @ env
+let rec exec_file env filename ic =
+  (* Read all input first for error reporting *)
+  let all_content =
+    let buf = Buffer.create 1024 in
+    try
+      while true do
+        Buffer.add_channel buf ic 1024
+      done;
+      Buffer.contents buf
+    with End_of_file -> Buffer.contents buf
+  in
+  let all_lines = String.split_on_char '\n' all_content in
+  let lexbuf = Lexing.from_string all_content in
+  (* Set the filename for proper position tracking *)
+  lexbuf.Lexing.lex_curr_p <-
+    { lexbuf.Lexing.lex_curr_p with pos_fname = filename };
+  try
+    let stmts = Parser.main Lexer.main lexbuf in
+    let env' = exec_stmts [] stmts in
+    close_in ic;
+    env' @ env
+  with Parser.Error ->
+    let pos = lexbuf.Lexing.lex_start_p in
+    let line = pos.Lexing.pos_lnum in
+    let col = pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1 in
+    let token = Lexing.lexeme lexbuf in
+    close_in ic;
+    let is_eof = token = "" || token = "\000" in
+    let error_context =
+      if is_eof then
+        (* For EOF errors, show the last non-empty line *)
+        let rec find_last_nonempty idx =
+          if idx < 0 then None
+          else
+            let line_content = List.nth all_lines idx in
+            if String.trim line_content <> "" then Some (idx + 1, line_content)
+            else find_last_nonempty (idx - 1)
+        in
+        match find_last_nonempty (List.length all_lines - 1) with
+        | Some (_, content) ->
+          Printf.sprintf "\n  %s\n  %s^ (after this)" content
+            (String.make (String.length content) ' ')
+        | None -> ""
+      else if line > 0 && line <= List.length all_lines then
+        let line_content = List.nth all_lines (line - 1) in
+        Printf.sprintf "\n  %s\n  %s^" line_content
+          (String.make (max 0 (col - 1)) ' ')
+      else ""
+    in
+    if is_eof then
+      failwith
+        (Printf.sprintf "Syntax error at %s:%d:%d: unexpected end of input%s"
+           filename line col error_context)
+    else
+      failwith
+        (Printf.sprintf "Syntax error at %s:%d:%d: unexpected '%s'%s" filename
+           line col token error_context)
 
 and exec_stmts env stmts =
   match stmts with
@@ -74,14 +125,14 @@ and exec_stmts env stmts =
 
 and exec_stmt env = function
   | Assign (x, e) -> (x, e) :: env
-  | Include filename -> exec_file env (open_in filename)
+  | Include filename -> exec_file env filename (open_in filename)
   | Eval e ->
-    print_endline ("▶ " ^ Ast.string_of_expr e ^ ";;");
+    print_endline ("▶ " ^ Ast.string_of_expr e);
     let e' = eval env e in
     print_endline (Ast.string_of_expr e');
     env
   | Step e ->
-    print_endline ("▸▸ " ^ Ast.string_of_expr e ^ ";;");
+    print_endline ("▸▸ " ^ Ast.string_of_expr e);
     let rec step_loop expr =
       let expr' = step env expr in
       if expr' = expr then expr'

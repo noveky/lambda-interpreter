@@ -12,25 +12,25 @@ let parse_args () =
 let () =
   try
     let files = parse_args () in
-    if files = [] then ignore (Interpreter.exec_file [] stdin)
+    if files = [] then ignore (Interpreter.exec_file [] "<stdin>" stdin)
     else
       let rec exec_files env = function
         | [] -> env
         | file :: rest ->
           let ic = open_in file in
-          let env = Interpreter.exec_file env ic in
+          let env = Interpreter.exec_file env file ic in
           exec_files env rest
       in
       ignore (exec_files [] files)
   with
   | Sys_error msg ->
-    Printf.eprintf "%s\n" msg;
+    Printf.eprintf "Error: %s\n" msg;
     exit 1
   | Parsing.Parse_error ->
-    Printf.eprintf "Parse error\n";
+    Printf.eprintf "Parse error";
     exit 1
   | Failure msg ->
-    Printf.eprintf "Error: %s\n" msg;
+    Printf.eprintf "%s\n" msg;
     exit 1
   | Arg.Bad msg ->
     Printf.eprintf "%s\n%s\n" msg usage;
