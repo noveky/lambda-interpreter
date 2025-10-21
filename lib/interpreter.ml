@@ -96,51 +96,6 @@ and eval env e =
   let e' = step env e in
   if e' <> e then eval env e' else e
 
-(*and eval env e = function
-  | Var x when List.mem_assoc x env -> eval env (List.assoc x env)
-  | App (e1, e2) -> (
-    let e1' = eval env e1 in
-    match e1' with
-    | Abs (x, e) when not (List.mem x (free_vars e)) -> e (* eta-reduction *)
-    | Abs (x, e) ->
-      let e2' = eval env e2 in
-      if is_value e2' then eval env (subst x e2' e)
-      (* beta-reduction *) else App (e1', e2')
-    | _ -> App (e1', eval env e2))
-  | Let (x, e1, e2) ->
-    let e1' = eval env e1 in
-    if is_value e1' then eval env (App (Abs (x, e2), e1')) else Let (x, e1', e2)
-  | If (e1, e2, e3) -> (
-    match eval env e1 with
-    | Val (Bool true) -> eval env e2
-    | Val (Bool false) -> eval env e3
-    | v when is_value v -> Wrong
-    | e' -> If (e', e2, e3))
-  | Seq (e1, e2) ->
-    let _ = eval env e1 in
-    eval env e2
-  | IsZero e -> (
-    match eval env e with
-    | Val (Num 0) -> Val (Bool true)
-    | Val (Num _) -> Val (Bool false)
-    | v when is_value v -> Wrong
-    | e' -> IsZero e')
-  | Succ e -> (
-    match eval env e with
-    | Val (Num n) -> Val (Num (n + 1))
-    | v when is_value v -> Wrong
-    | e' -> Succ e')
-  | Pred e -> (
-    match eval env e with
-    | Val (Num 0) -> Val (Num 0)
-    | Val (Num n) -> Val (Num (n - 1))
-    | v when is_value v -> Wrong
-    | e' -> Pred e')
-  | Print e ->
-    print_endline (Ast.string_of_expr (eval env e));
-    Val Unit
-  | e -> e*)
-
 and step env = function
   | Var x when List.mem_assoc x env -> List.assoc x env
   | App (Tuple l1, e2) -> Tuple (l1 @ [ e2 ])

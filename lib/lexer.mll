@@ -31,6 +31,7 @@ rule main = parse
   | "\"" ([^ '"']* as s) "\""
                             { STRING s }
   | "@include"              { INCLUDE }
+  | "@eval"                 { EVAL }
   | "@step"                 { STEP }
   | eof                     { EOF }
   | _ as c                  { failwith (Printf.sprintf "Unrecognized char: %c" c) }

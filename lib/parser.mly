@@ -5,11 +5,11 @@ open Ast
 %token <string> IDENT
 %token <int> NUMBER
 %token <string> STRING
-%token LAMBDA DOT LPAREN RPAREN DSEMICOLON SEMICOLON LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED TUPLE PRINT INCLUDE STEP
+%token LAMBDA DOT LPAREN RPAREN DSEMICOLON SEMICOLON LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED TUPLE PRINT INCLUDE EVAL STEP
 %token EOF
 
 %right DSEMICOLON
-%nonassoc EQUAL INCLUDE STEP
+%nonassoc EQUAL INCLUDE EVAL STEP
 %right LET IN
 %right IF THEN ELSE
 %right SEMICOLON
@@ -26,13 +26,14 @@ main:
   | stmt_list EOF  { $1 }
 
 stmt_list:
-  | stmt DSEMICOLON stmt_list  { $1 :: $3 }
   | /* empty */  { [] }
+  | stmt DSEMICOLON stmt_list  { $1 :: $3 }
+  | stmt stmt_list  { $1 :: $2 }
 
 stmt:
-  | IDENT EQUAL expr  { Assign ($1, $3) }
-  | expr  { Eval $1 }
+  | LET IDENT EQUAL expr  { Assign ($2, $4) }
   | INCLUDE STRING  { Include $2 }
+  | EVAL expr  { Eval $2 }
   | STEP expr  { Step $2 }
 
 expr:
