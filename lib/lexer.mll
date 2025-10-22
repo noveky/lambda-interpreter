@@ -12,6 +12,7 @@ rule main = parse
   | ")"                     { RPAREN }
   | ";;"                    { DSEMICOLON }
   | ";"                     { SEMICOLON }
+  | ","                     { COMMA }
   | "let"                   { LET }
   | "="                     { EQUAL }
   | "in"                    { IN }
@@ -24,6 +25,7 @@ rule main = parse
   | "@succ"                 { SUCC }
   | "@pred"                 { PRED }
   | "@print"                { PRINT }
+  | "@println"              { PRINTLN }
   | "@tuple"                { TUPLE }
   | ['a'-'z''A'-'Z''_']['a'-'z''A'-'Z''0'-'9''_''\'']*
                             { IDENT (Lexing.lexeme lexbuf) }

@@ -5,7 +5,7 @@ open Ast
 %token <string> IDENT
 %token <int> NUMBER
 %token <string> STRING
-%token LAMBDA DOT LPAREN RPAREN DSEMICOLON SEMICOLON LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED TUPLE PRINT INCLUDE EVAL STEP
+%token LAMBDA DOT LPAREN RPAREN DSEMICOLON SEMICOLON COMMA LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED TUPLE PRINT PRINTLN INCLUDE EVAL STEP
 %token EOF
 
 %right DSEMICOLON
@@ -13,8 +13,9 @@ open Ast
 %right LET IN
 %right IF THEN ELSE
 %right SEMICOLON
+%right COMMA
 %right LAMBDA DOT
-%left ISZERO SUCC PRED TUPLE PRINT
+%left ISZERO SUCC PRED TUPLE PRINT PRINTLN
 %left APP
 
 %start main
@@ -47,7 +48,8 @@ app_expr:
   | ISZERO atom  { IsZero $2 }
   | SUCC atom  { Succ $2 }
   | PRED atom  { Pred $2 }
-  | PRINT atom  { Print $2 }
+  | PRINT atom  { Print (false, $2) }
+  | PRINTLN atom  { Print (true, $2) }
   | TUPLE atom  { Tuple [$2] }
   | app_expr atom %prec APP  { App ($1, $2) }
   | atom  { $1 }
@@ -58,4 +60,14 @@ atom:
   | TRUE  { Val (Bool true) }
   | FALSE  { Val (Bool false) }
   | STRING  { Val (Str $1) }
-  | LPAREN expr RPAREN  { $2 }
+  | LPAREN tuple_exprs RPAREN  {
+      match $2 with
+      | (false, []) -> Val Unit
+      | (false, [e]) -> e
+      | (_, es) -> Tuple es
+    }
+
+tuple_exprs:
+  | /* empty */  { (false, []) }
+  | expr  { (false, [$1]) }
+  | expr COMMA tuple_exprs  { let (_, es) = $3 in (true, $1 :: es) }

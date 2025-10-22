@@ -63,9 +63,9 @@ let cla8 = \A. \B. \C0.
     let sum = \f. f S7 S6 S5 S4 S3 S2 S1 S0 in
     pair sum C8
 
-let bitToNat = \b. b c1 c0
+let bitToChurchNat = \b. b c1 c0
 
-let bit8ToNat = \N.
+let bit8ToChurchNat = \N.
     let N0 = b0Bin8 N in
     let N1 = b1Bin8 N in
     let N2 = b2Bin8 N in
@@ -74,17 +74,17 @@ let bit8ToNat = \N.
     let N5 = b5Bin8 N in
     let N6 = b6Bin8 N in
     let N7 = b7Bin8 N in
-    let n0 = bitToNat N0 in
-    let n1 = times c2 (bitToNat N1) in
-    let n2 = times (times c2 c2) (bitToNat N2) in
-    let n3 = times (times c2 (times c2 c2)) (bitToNat N3) in
-    let n4 = times (times c2 (times c2 (times c2 c2))) (bitToNat N4) in
-    let n5 = times (times c2 (times c2 (times c2 (times c2 c2)))) (bitToNat N5) in
-    let n6 = times (times c2 (times c2 (times c2 (times c2 (times c2 c2))))) (bitToNat N6) in
-    let n7 = times (times c2 (times c2 (times c2 (times c2 (times c2 (times c2 c2)))))) (bitToNat N7) in
+    let n0 = bitToChurchNat N0 in
+    let n1 = times c2 (bitToChurchNat N1) in
+    let n2 = times (times c2 c2) (bitToChurchNat N2) in
+    let n3 = times (times c2 (times c2 c2)) (bitToChurchNat N3) in
+    let n4 = times (times c2 (times c2 (times c2 c2))) (bitToChurchNat N4) in
+    let n5 = times (times c2 (times c2 (times c2 (times c2 c2)))) (bitToChurchNat N5) in
+    let n6 = times (times c2 (times c2 (times c2 (times c2 (times c2 c2))))) (bitToChurchNat N6) in
+    let n7 = times (times c2 (times c2 (times c2 (times c2 (times c2 (times c2 c2)))))) (bitToChurchNat N7) in
     plus n0 (plus n1 (plus n2 (plus n3 (plus n4 (plus n5 (plus n6 n7))))))
 
-let dispBit = \b. realnat (bitToNat b)
+let dispBit = \b. realnat (bitToChurchNat b)
 
 let disp8 = \N.
     let N0 = b0Bin8 N in
@@ -95,8 +95,8 @@ let disp8 = \N.
     let N5 = b5Bin8 N in
     let N6 = b6Bin8 N in
     let N7 = b7Bin8 N in
-    @tuple (dispBit N7) (dispBit N6) (dispBit N5) (dispBit N4)
-           (dispBit N3) (dispBit N2) (dispBit N1) (dispBit N0)
+    (dispBit N7, dispBit N6, dispBit N5, dispBit N4,
+     dispBit N3, dispBit N2, dispBit N1, dispBit N0)
 
 let natToBit = \n. @if @iszero n @then fls @else tru
 
@@ -111,8 +111,9 @@ let C0 = natToBit 0 in
 let result = cla8 A B C0 in
 let sum = fst result in
 let carry = snd result in
-@print "149 (10010101) + 86 (01010110) =";
-@print (realnat (bit8ToNat sum));
+@print "149 (10010101) + 86 (01010110) = ";
+@print (realnat (bit8ToChurchNat sum));
+@print ", binary: ";
 @print (disp8 sum);
-@print "carry =";
-@print (dispBit carry)
+@print ", carry = ";
+@println (dispBit carry)

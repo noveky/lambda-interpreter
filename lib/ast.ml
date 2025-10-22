@@ -15,7 +15,7 @@ and expr =
   | IsZero of expr
   | Succ of expr
   | Pred of expr
-  | Print of expr
+  | Print of bool * expr
   | Tuple of expr list
   | Wrong
 
@@ -36,65 +36,63 @@ let precedence = function
 
 let is_right_associative = function Abs _ -> true | _ -> false
 
-let rec string_of_expr_prec parent_prec expr =
+let rec string_of_expr_prec parent_prec print_mode expr =
   let current_prec = precedence expr in
   let needs_parens = current_prec < parent_prec in
   let result =
     match expr with
     | Var x -> x
-    | Val v -> string_of_value v
+    | Val v -> string_of_value print_mode v
     | Wrong -> "wrong"
     | Abs (x, e) ->
-      Printf.sprintf "λ%s. %s" x (string_of_expr_prec current_prec e)
+      Printf.sprintf "λ%s. %s" x (string_of_expr_prec current_prec print_mode e)
     | App (e1, e2) ->
-      let left = string_of_expr_prec current_prec e1 in
-      let right = string_of_expr_prec (current_prec + 1) e2 in
+      let left = string_of_expr_prec current_prec print_mode e1 in
+      let right = string_of_expr_prec (current_prec + 1) print_mode e2 in
       Printf.sprintf "%s %s" left right
     | Let (x, e1, e2) ->
       Printf.sprintf "let %s = %s in %s" x
-        (string_of_expr_prec current_prec e1)
-        (string_of_expr_prec current_prec e2)
+        (string_of_expr_prec current_prec print_mode e1)
+        (string_of_expr_prec current_prec print_mode e2)
     | If (e1, e2, e3) ->
       Printf.sprintf "@if %s @then %s @else %s"
-        (string_of_expr_prec (current_prec + 1) e1)
-        (string_of_expr_prec (current_prec + 1) e2)
-        (string_of_expr_prec current_prec e3)
+        (string_of_expr_prec (current_prec + 1) print_mode e1)
+        (string_of_expr_prec (current_prec + 1) print_mode e2)
+        (string_of_expr_prec current_prec print_mode e3)
     | Seq (e1, e2) ->
       Printf.sprintf "%s; %s"
-        (string_of_expr_prec current_prec e1)
-        (string_of_expr_prec current_prec e2)
+        (string_of_expr_prec current_prec print_mode e1)
+        (string_of_expr_prec current_prec print_mode e2)
     | IsZero e ->
-      Printf.sprintf "@iszero %s" (string_of_expr_prec (current_prec + 1) e)
+      Printf.sprintf "@iszero %s"
+        (string_of_expr_prec (current_prec + 1) print_mode e)
     | Succ e ->
-      Printf.sprintf "@succ %s" (string_of_expr_prec (current_prec + 1) e)
+      Printf.sprintf "@succ %s"
+        (string_of_expr_prec (current_prec + 1) print_mode e)
     | Pred e ->
-      Printf.sprintf "@pred %s" (string_of_expr_prec (current_prec + 1) e)
-    | Print e ->
-      Printf.sprintf "@print %s" (string_of_expr_prec (current_prec + 1) e)
-    | Tuple [ e ] ->
-      Printf.sprintf "@tuple %s" (string_of_expr_prec (current_prec + 1) e)
+      Printf.sprintf "@pred %s"
+        (string_of_expr_prec (current_prec + 1) print_mode e)
+    | Print (nl, e) ->
+      Printf.sprintf "%s %s"
+        (if nl then "@println" else "@print")
+        (string_of_expr_prec (current_prec + 1) print_mode e)
     | Tuple l ->
-      let rec construct_app l =
-        match l with
-        | [] -> failwith "Internal error: Unexpected nullary tuple"
-        | [ e ] -> Tuple [ e ]
-        | [ last; head ] -> App (Tuple [ head ], last)
-        | last :: init -> App (construct_app init, last)
-      in
-      string_of_expr_prec current_prec (construct_app (List.rev l))
+      let elements = List.map (string_of_expr_prec 0 print_mode) l in
+      let joined = String.concat ", " elements in
+      Printf.sprintf "(%s%s)" joined (if List.length l = 1 then "," else "")
   in
   if needs_parens then "(" ^ result ^ ")" else result
 
-and string_of_value = function
+and string_of_value print_mode = function
   | Num n -> string_of_int n
   | Bool true -> "@true"
   | Bool false -> "@false"
-  | Str s -> "\"" ^ s ^ "\""
+  | Str s -> if print_mode then s else "\"" ^ s ^ "\""
   | List l ->
     let rec string_of_list l =
       match l with
       | [] -> ""
-      | x :: xs -> string_of_value x ^ ", " ^ string_of_list xs
+      | x :: xs -> string_of_value print_mode x ^ ", " ^ string_of_list xs
     in
     string_of_list l
   | Unit -> "()"

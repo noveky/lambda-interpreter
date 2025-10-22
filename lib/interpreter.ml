@@ -14,7 +14,7 @@ let rec free_vars = function
     free_vars e1 @ List.filter (fun x -> x <> y) (free_vars e2)
   | If (e1, e2, e3) -> free_vars e1 @ free_vars e2 @ free_vars e3
   | Seq (e1, e2) -> free_vars e1 @ free_vars e2
-  | IsZero e | Succ e | Pred e | Print e -> free_vars e
+  | IsZero e | Succ e | Pred e | Print (_, e) -> free_vars e
   | Tuple l -> List.concat (List.map free_vars l)
   | _ -> []
 
@@ -30,7 +30,7 @@ let rec rename x s = function
   | IsZero e -> IsZero (rename x s e)
   | Succ e -> Succ (rename x s e)
   | Pred e -> Pred (rename x s e)
-  | Print e -> Print (rename x s e)
+  | Print (nl, e) -> Print (nl, rename x s e)
   | Tuple l -> Tuple (List.map (rename x s) l)
   | e -> e
 
@@ -52,7 +52,7 @@ let rec subst x s = function
   | IsZero e -> IsZero (subst x s e)
   | Succ e -> Succ (subst x s e)
   | Pred e -> Pred (subst x s e)
-  | Print e -> Print (subst x s e)
+  | Print (nl, e) -> Print (nl, subst x s e)
   | Tuple l -> Tuple (List.map (subst x s) l)
   | e -> e
 
@@ -127,17 +127,17 @@ and exec_stmt env = function
   | Assign (x, e) -> (x, e) :: env
   | Include filename -> exec_file env filename (open_in filename)
   | Eval e ->
-    print_endline ("▶ " ^ Ast.string_of_expr e);
+    print_endline ("▶ " ^ Ast.string_of_expr false e);
     let e' = eval env e in
-    print_endline (Ast.string_of_expr e');
+    print_endline (Ast.string_of_expr false e');
     env
   | Step e ->
-    print_endline ("▸▸ " ^ Ast.string_of_expr e);
+    print_endline ("▸▸ " ^ Ast.string_of_expr false e);
     let rec step_loop expr =
       let expr' = step env expr in
       if expr' = expr then expr'
       else (
-        print_endline ("▸▸ " ^ Ast.string_of_expr expr');
+        print_endline ("▸▸ " ^ Ast.string_of_expr false expr');
         step_loop expr')
     in
     let _ = step_loop e in
@@ -191,11 +191,12 @@ and step env = function
     | Val (Num n) -> Val (Num (n - 1))
     | v when is_value v -> Wrong
     | _ -> Pred (step env e))
-  | Print e ->
+  | Print (nl, e) ->
     let e' = step env e in
-    if e' <> e then Print e'
+    if e' <> e then Print (nl, e')
     else (
-      print_endline (Ast.string_of_expr (step env e));
+      (if nl then print_endline else print_string)
+        (Ast.string_of_expr true (step env e));
       Val Unit)
   | Tuple l -> Tuple (List.map (step env) l)
   | e -> e
