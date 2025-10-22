@@ -26,6 +26,7 @@ rule main = parse
   | "@pred"                 { PRED }
   | "@print"                { PRINT }
   | "@println"              { PRINTLN }
+  | "@printbyte"             { PRINTBYTE }
   | "@tuple"                { TUPLE }
   | ['a'-'z''A'-'Z''_']['a'-'z''A'-'Z''0'-'9''_''\'']*
                             { IDENT (Lexing.lexeme lexbuf) }
@@ -39,6 +40,6 @@ rule main = parse
   | eof                     { EOF }
   | _ as c                  {
       let pos = lexbuf.Lexing.lex_curr_p in
-      failwith (Printf.sprintf "Unexpected character '%c' at line %d, column %d"
+      failwith (Printf.sprintf "Lexical error: unexpected character '%c' at line %d, column %d"
         c pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1))
     }

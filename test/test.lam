@@ -1,14 +1,9 @@
-@eval (1,2,3)
-@eval (1,)
+@include "lib/church.lam"
 
-# @eval let x = 1 in let y = 2 in x;y;;
+let natToBit = \n. (churchbool (@iszero n)) fls tru
 
-# @eval @if @if @true @then @false @else 0 @then @if @true @then 4 @else 5 @else @if @true @then 2 @else 3;;
+let natsToBin8 = \b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0.
+    \f. f (natToBit b7) (natToBit b6) (natToBit b5) (natToBit b4)
+          (natToBit b3) (natToBit b2) (natToBit b1) (natToBit b0)
 
-# @eval @if let x = 1 in @true; @true @then @false @else 5;;
-
-# @eval \x.\y. x y z;;
-
-# @eval let x = 1 in let y = \z.z in x;;
-
-# @eval @tuple 1 2 3 4;;
+@eval @printbyte (natsToBin8 0 1 0 0 0 0 0 1); @println ""

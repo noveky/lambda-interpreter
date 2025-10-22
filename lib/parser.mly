@@ -5,18 +5,13 @@ open Ast
 %token <string> IDENT
 %token <int> NUMBER
 %token <string> STRING
-%token LAMBDA DOT LPAREN RPAREN DSEMICOLON SEMICOLON COMMA LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED TUPLE PRINT PRINTLN INCLUDE EVAL STEP
+%token LAMBDA DOT LPAREN RPAREN DSEMICOLON SEMICOLON COMMA LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED TUPLE PRINT PRINTLN PRINTBYTE INCLUDE EVAL STEP
 %token EOF
 
-%right DSEMICOLON
-%nonassoc EQUAL INCLUDE EVAL STEP
-%right LET IN
-%right IF THEN ELSE
+%right IN
+%right ELSE
 %right SEMICOLON
-%right COMMA
-%right LAMBDA DOT
-%left ISZERO SUCC PRED TUPLE PRINT PRINTLN
-%left APP
+%right DOT
 
 %start main
 %type <Ast.stmt list> main
@@ -48,10 +43,11 @@ app_expr:
   | ISZERO atom  { IsZero $2 }
   | SUCC atom  { Succ $2 }
   | PRED atom  { Pred $2 }
-  | PRINT atom  { Print (false, $2) }
-  | PRINTLN atom  { Print (true, $2) }
+  | PRINT atom  { Print $2 }
+  | PRINTLN atom  { PrintLn $2 }
+  | PRINTBYTE atom  { PrintByte $2 }
   | TUPLE atom  { Tuple [$2] }
-  | app_expr atom %prec APP  { App ($1, $2) }
+  | app_expr atom  { App ($1, $2) }
   | atom  { $1 }
 
 atom:

@@ -98,7 +98,7 @@ let disp8 = \N.
     (dispBit N7, dispBit N6, dispBit N5, dispBit N4,
      dispBit N3, dispBit N2, dispBit N1, dispBit N0)
 
-let natToBit = \n. @if @iszero n @then fls @else tru
+let natToBit = \n. (churchbool (@iszero n)) fls tru
 
 let natsToBin8 = \b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0.
     \f. f (natToBit b7) (natToBit b6) (natToBit b5) (natToBit b4)

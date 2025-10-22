@@ -15,7 +15,9 @@ and expr =
   | IsZero of expr
   | Succ of expr
   | Pred of expr
-  | Print of bool * expr
+  | Print of expr
+  | PrintLn of expr
+  | PrintByte of expr
   | Tuple of expr list
   | Wrong
 
@@ -28,7 +30,9 @@ and value =
 
 let precedence = function
   | Var _ | Val _ | Wrong -> 6
-  | App _ | IsZero _ | Succ _ | Pred _ | Print _ | Tuple _ -> 5
+  | App _ | IsZero _ | Succ _ | Pred _ | Print _ | PrintLn _ | PrintByte _
+  | Tuple _ ->
+    5
   | Abs _ -> 4
   | Seq _ -> 3
   | If _ -> 2
@@ -72,9 +76,13 @@ let rec string_of_expr_prec parent_prec print_mode expr =
     | Pred e ->
       Printf.sprintf "@pred %s"
         (string_of_expr_prec (current_prec + 1) print_mode e)
-    | Print (nl, e) ->
+    | Print e | PrintLn e | PrintByte e ->
       Printf.sprintf "%s %s"
-        (if nl then "@println" else "@print")
+        (match expr with
+        | Print _ -> "@print"
+        | PrintLn _ -> "@println"
+        | PrintByte _ -> "@printbyte"
+        | _ -> assert false)
         (string_of_expr_prec (current_prec + 1) print_mode e)
     | Tuple l ->
       let elements = List.map (string_of_expr_prec 0 print_mode) l in

@@ -14,7 +14,8 @@ let rec free_vars = function
     free_vars e1 @ List.filter (fun x -> x <> y) (free_vars e2)
   | If (e1, e2, e3) -> free_vars e1 @ free_vars e2 @ free_vars e3
   | Seq (e1, e2) -> free_vars e1 @ free_vars e2
-  | IsZero e | Succ e | Pred e | Print (_, e) -> free_vars e
+  | IsZero e | Succ e | Pred e | Print e | PrintLn e | PrintByte e ->
+    free_vars e
   | Tuple l -> List.concat (List.map free_vars l)
   | _ -> []
 
@@ -30,7 +31,9 @@ let rec rename x s = function
   | IsZero e -> IsZero (rename x s e)
   | Succ e -> Succ (rename x s e)
   | Pred e -> Pred (rename x s e)
-  | Print (nl, e) -> Print (nl, rename x s e)
+  | Print e -> Print (rename x s e)
+  | PrintLn e -> PrintLn (rename x s e)
+  | PrintByte e -> PrintByte (rename x s e)
   | Tuple l -> Tuple (List.map (rename x s) l)
   | e -> e
 
@@ -52,7 +55,9 @@ let rec subst x s = function
   | IsZero e -> IsZero (subst x s e)
   | Succ e -> Succ (subst x s e)
   | Pred e -> Pred (subst x s e)
-  | Print (nl, e) -> Print (nl, subst x s e)
+  | Print e -> Print (subst x s e)
+  | PrintLn e -> PrintLn (subst x s e)
+  | PrintByte e -> PrintByte (subst x s e)
   | Tuple l -> Tuple (List.map (subst x s) l)
   | e -> e
 
@@ -191,12 +196,69 @@ and step env = function
     | Val (Num n) -> Val (Num (n - 1))
     | v when is_value v -> Wrong
     | _ -> Pred (step env e))
-  | Print (nl, e) ->
+  | Print e ->
     let e' = step env e in
-    if e' <> e then Print (nl, e')
+    if e' <> e then Print e'
     else (
-      (if nl then print_endline else print_string)
-        (Ast.string_of_expr true (step env e));
+      print_string (Ast.string_of_expr true (step env e));
       Val Unit)
+  | PrintLn e ->
+    let e' = step env e in
+    if e' <> e then PrintLn e'
+    else (
+      print_endline (Ast.string_of_expr true (step env e));
+      Val Unit)
+  | PrintByte e ->
+    let e' = step env e in
+    if e' <> e then PrintByte e'
+    else
+      let get_bit_of_bin8 bit =
+        Abs
+          ( "n",
+            App
+              ( Var "n",
+                Abs
+                  ( "b7",
+                    Abs
+                      ( "b6",
+                        Abs
+                          ( "b5",
+                            Abs
+                              ( "b4",
+                                Abs
+                                  ( "b3",
+                                    Abs
+                                      ( "b2",
+                                        Abs
+                                          ( "b1",
+                                            Abs
+                                              ( "b0",
+                                                Var (Printf.sprintf "b%d" bit)
+                                              ) ) ) ) ) ) ) ) ) )
+      in
+      let church_bit_to_int b =
+        let bool_expr =
+          eval env
+            (App (Abs ("b", App (App (Var "b", Val (Num 1)), Val (Num 0))), b))
+        in
+        match bool_expr with
+        | Val (Num n) -> n
+        | _ ->
+          failwith
+            (Printf.sprintf
+               "Runtime error: @printbyte: input is not a 8-bit church binary:\n\
+               \  %s"
+               (Ast.string_of_expr false e))
+      in
+      let byte_value =
+        List.fold_left
+          (fun acc bit ->
+            let church_bit = eval [] (App (get_bit_of_bin8 bit, e)) in
+            acc + (church_bit_to_int church_bit lsl bit))
+          0
+          (List.init 8 (fun x -> x))
+      in
+      print_char (char_of_int byte_value);
+      Val Unit
   | Tuple l -> Tuple (List.map (step env) l)
   | e -> e
