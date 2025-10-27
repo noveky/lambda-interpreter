@@ -63,6 +63,9 @@ let rec subst x s = function
 
 let is_value = function Var _ | Abs _ | Val _ -> true | _ -> false
 
+(* Track included files to prevent duplicate includes *)
+let included_files = ref []
+
 let rec exec_file env filename ic =
   (* Read all input first for error reporting *)
   let all_content =
@@ -129,12 +132,30 @@ and exec_stmts env stmts =
     exec_stmts env' rest
 
 and exec_stmt env = function
-  | Assign (x, e) -> (x, e) :: env
-  | Include filename -> exec_file env filename (open_in filename)
+  | Assign (x, e) -> (x, eval env e) :: env
+  | Include path ->
+    let actual_path =
+      if Sys.is_directory path then
+        let base_name = Filename.basename path in
+        Filename.concat path (base_name ^ ".lam")
+      else path
+    in
+    (* Normalize path to absolute path for consistent comparison *)
+    let normalized_path =
+      if Filename.is_relative actual_path then
+        Filename.concat (Sys.getcwd ()) actual_path
+      else actual_path
+    in
+    (* Check if file has already been included *)
+    if List.mem normalized_path !included_files then env
+      (* Skip if already included *)
+    else (
+      included_files := normalized_path :: !included_files;
+      exec_file env actual_path (open_in actual_path))
   | Eval e ->
     print_endline ("▶ " ^ Ast.string_of_expr false e);
     let e' = eval env e in
-    print_endline (Ast.string_of_expr false e');
+    print_endline (Ast.string_of_expr true e');
     env
   | Step e ->
     print_endline ("▸▸ " ^ Ast.string_of_expr false e);
@@ -142,7 +163,7 @@ and exec_stmt env = function
       let expr' = step env expr in
       if expr' = expr then expr'
       else (
-        print_endline ("▸▸ " ^ Ast.string_of_expr false expr');
+        print_endline (">> " ^ Ast.string_of_expr false expr');
         step_loop expr')
     in
     let _ = step_loop e in
@@ -154,7 +175,8 @@ and eval env e =
 
 and step env = function
   | Var x when List.mem_assoc x env -> List.assoc x env
-  | App (Tuple l1, e2) -> Tuple (l1 @ [ e2 ])
+  | Abs (x, e) -> Abs (x, step env e)
+  | App (Val _, _) -> Wrong "Val cannot be applied"
   | App (Abs (x1, e1), _) when not (List.mem x1 (free_vars e1)) ->
     e1 (* eta-reduction *)
   | App (Abs (x1, e1), v2) when is_value v2 ->
@@ -173,7 +195,7 @@ and step env = function
     match e1 with
     | Val (Bool true) -> e2
     | Val (Bool false) -> e3
-    | v when is_value v -> Wrong
+    | Val _ -> Wrong "IF: expected Bool"
     | _ -> If (step env e1, e2, e3))
   | Seq (v1, e2) when is_value v1 -> e2
   | Seq (e1, e2) ->
@@ -183,18 +205,18 @@ and step env = function
     match e with
     | Val (Num 0) -> Val (Bool true)
     | Val (Num _) -> Val (Bool false)
-    | v when is_value v -> Wrong
+    | Val _ -> Wrong "ISZERO: expected Num"
     | _ -> IsZero (step env e))
   | Succ e -> (
     match e with
     | Val (Num n) -> Val (Num (n + 1))
-    | v when is_value v -> Wrong
+    | Val _ -> Wrong "SUCC: expected Num"
     | _ -> Succ (step env e))
   | Pred e -> (
     match e with
     | Val (Num 0) -> Val (Num 0)
     | Val (Num n) -> Val (Num (n - 1))
-    | v when is_value v -> Wrong
+    | Val _ -> Wrong "PRED: expected Num"
     | _ -> Pred (step env e))
   | Print e ->
     let e' = step env e in
@@ -246,7 +268,7 @@ and step env = function
         | _ ->
           failwith
             (Printf.sprintf
-               "Runtime error: @printbyte: input is not a 8-bit church binary:\n\
+               "Runtime error: PRINTBYTE: input is not a 8-bit church binary:\n\
                \  %s"
                (Ast.string_of_expr false e))
       in

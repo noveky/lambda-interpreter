@@ -1,0 +1,3 @@
+@include "lib/church/basic.lam"
+@include "lib/church/i8.lam"
+@include "lib/church/i32.lam"

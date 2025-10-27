@@ -1,0 +1,42 @@
+let tru = \t. \f. t
+let fls = \t. \f. f
+let c0 = \s. \z. z
+let c1 = \s. \z. s z
+let c2 = \s. \z. s (s z)
+let c3 = \s. \z. s (s (s z))
+let c4 = \s. \z. s (s (s (s z)))
+let c5 = \s. \z. s (s (s (s (s z))))
+let c6 = \s. \z. s (s (s (s (s (s z)))))
+let c7 = \s. \z. s (s (s (s (s (s (s z))))))
+let c8 = \s. \z. s (s (s (s (s (s (s (s z)))))))
+
+let fix = \f. (\x. f (\y. x x y)) (\x. f (\y. x x y))
+
+let pair = \f. \s. \b. b f s
+let fst = \p. p tru
+let snd = \p. p fls
+
+let and = \b. \c. b c fls
+let or = \b. \c. b tru c
+let not = \b. b fls tru
+let xor = \a. \b. a (not b) b
+
+let iszro = \m. m (\x. fls) tru
+let equal = \m. \n.
+                and (iszro (m prd n))
+                    (iszro (n prd m))
+let scc = \n. \s. \z. s (n s z)
+let prd = \m. fst (m (\p. pair (snd p) (plus c1 (snd p))) (pair c0 c0))
+let plus = \m. \n. \s. \z. m s (n s z)
+let times = \m. \n. m (plus n) c0
+
+let realeq = \m. \n. (equal m n) TRUE FALSE
+let realbool = \b. b TRUE FALSE
+let churchbool = \b. IF b THEN tru ELSE fls
+let realnat = \m. m (\x. SUCC x) 0
+let churchnat = fix (\f. \m. IF ISZERO m THEN c0 ELSE scc (f (PRED m)))
+
+let nil = \c. \n. n
+let cons = \h. \t. \c. \n. c h (t c n)
+let head = \l. l (\h. \t. h) fls
+let tail = \l. fst (l (\h. \t. pair fls (cons h t)) (pair tru nil))

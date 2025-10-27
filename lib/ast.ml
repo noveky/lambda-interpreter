@@ -19,7 +19,7 @@ and expr =
   | PrintLn of expr
   | PrintByte of expr
   | Tuple of expr list
-  | Wrong
+  | Wrong of string
 
 and value =
   | Num of int
@@ -29,9 +29,9 @@ and value =
   | Unit
 
 let precedence = function
-  | Var _ | Val _ | Wrong -> 6
+  | Var _ | Val _ | Tuple _ -> 6
   | App _ | IsZero _ | Succ _ | Pred _ | Print _ | PrintLn _ | PrintByte _
-  | Tuple _ ->
+  | Wrong _ ->
     5
   | Abs _ -> 4
   | Seq _ -> 3
@@ -47,7 +47,7 @@ let rec string_of_expr_prec parent_prec print_mode expr =
     match expr with
     | Var x -> x
     | Val v -> string_of_value print_mode v
-    | Wrong -> "wrong"
+    | Wrong s -> Printf.sprintf "WRONG \"%s\"" s
     | Abs (x, e) ->
       Printf.sprintf "λ%s. %s" x (string_of_expr_prec current_prec print_mode e)
     | App (e1, e2) ->
@@ -59,7 +59,7 @@ let rec string_of_expr_prec parent_prec print_mode expr =
         (string_of_expr_prec current_prec print_mode e1)
         (string_of_expr_prec current_prec print_mode e2)
     | If (e1, e2, e3) ->
-      Printf.sprintf "@if %s @then %s @else %s"
+      Printf.sprintf "IF %s THEN %s ELSE %s"
         (string_of_expr_prec (current_prec + 1) print_mode e1)
         (string_of_expr_prec (current_prec + 1) print_mode e2)
         (string_of_expr_prec current_prec print_mode e3)
@@ -68,20 +68,20 @@ let rec string_of_expr_prec parent_prec print_mode expr =
         (string_of_expr_prec current_prec print_mode e1)
         (string_of_expr_prec current_prec print_mode e2)
     | IsZero e ->
-      Printf.sprintf "@iszero %s"
+      Printf.sprintf "ISZERO %s"
         (string_of_expr_prec (current_prec + 1) print_mode e)
     | Succ e ->
-      Printf.sprintf "@succ %s"
+      Printf.sprintf "SUCC %s"
         (string_of_expr_prec (current_prec + 1) print_mode e)
     | Pred e ->
-      Printf.sprintf "@pred %s"
+      Printf.sprintf "PRED %s"
         (string_of_expr_prec (current_prec + 1) print_mode e)
     | Print e | PrintLn e | PrintByte e ->
       Printf.sprintf "%s %s"
         (match expr with
-        | Print _ -> "@print"
-        | PrintLn _ -> "@println"
-        | PrintByte _ -> "@printbyte"
+        | Print _ -> "PRINT"
+        | PrintLn _ -> "PRINTLN"
+        | PrintByte _ -> "PRINTBYTE"
         | _ -> assert false)
         (string_of_expr_prec (current_prec + 1) print_mode e)
     | Tuple l ->
@@ -93,8 +93,8 @@ let rec string_of_expr_prec parent_prec print_mode expr =
 
 and string_of_value print_mode = function
   | Num n -> string_of_int n
-  | Bool true -> "@true"
-  | Bool false -> "@false"
+  | Bool true -> "TRUE"
+  | Bool false -> "FALSE"
   | Str s -> if print_mode then s else "\"" ^ s ^ "\""
   | List l ->
     let rec string_of_list l =
@@ -103,6 +103,6 @@ and string_of_value print_mode = function
       | x :: xs -> string_of_value print_mode x ^ ", " ^ string_of_list xs
     in
     string_of_list l
-  | Unit -> "()"
+  | Unit -> if print_mode then "" else "()"
 
 let string_of_expr = string_of_expr_prec 0

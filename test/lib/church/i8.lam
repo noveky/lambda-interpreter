@@ -1,0 +1,151 @@
+@include "lib/church/bin.lam"
+
+# 8-bit accessors
+let b0I8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b0)
+let b1I8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b1)
+let b2I8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b2)
+let b3I8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b3)
+let b4I8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b4)
+let b5I8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b5)
+let b6I8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b6)
+let b7I8 = \n. n (\b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0. b7)
+
+# 8-bit Carry Lookahead Full Adder
+let cla8 = \A. \B. \C0.
+    let A0 = b0I8 A in
+    let A1 = b1I8 A in
+    let A2 = b2I8 A in
+    let A3 = b3I8 A in
+    let A4 = b4I8 A in
+    let A5 = b5I8 A in
+    let A6 = b6I8 A in
+    let A7 = b7I8 A in
+    let B0 = b0I8 B in
+    let B1 = b1I8 B in
+    let B2 = b2I8 B in
+    let B3 = b3I8 B in
+    let B4 = b4I8 B in
+    let B5 = b5I8 B in
+    let B6 = b6I8 B in
+    let B7 = b7I8 B in
+    let P0 = xor A0 B0 in
+    let P1 = xor A1 B1 in
+    let P2 = xor A2 B2 in
+    let P3 = xor A3 B3 in
+    let P4 = xor A4 B4 in
+    let P5 = xor A5 B5 in
+    let P6 = xor A6 B6 in
+    let P7 = xor A7 B7 in
+    let G0 = and A0 B0 in
+    let G1 = and A1 B1 in
+    let G2 = and A2 B2 in
+    let G3 = and A3 B3 in
+    let G4 = and A4 B4 in
+    let G5 = and A5 B5 in
+    let G6 = and A6 B6 in
+    let G7 = and A7 B7 in
+    let C1 = or G0 (and P0 C0) in
+    let C2 = or G1 (and P1 C1) in
+    let C3 = or G2 (and P2 C2) in
+    let C4 = or G3 (and P3 C3) in
+    let C5 = or G4 (and P4 C4) in
+    let C6 = or G5 (and P5 C5) in
+    let C7 = or G6 (and P6 C6) in
+    let C8 = or G7 (and P7 C7) in
+    let S0 = xor P0 C0 in
+    let S1 = xor P1 C1 in
+    let S2 = xor P2 C2 in
+    let S3 = xor P3 C3 in
+    let S4 = xor P4 C4 in
+    let S5 = xor P5 C5 in
+    let S6 = xor P6 C6 in
+    let S7 = xor P7 C7 in
+    let sum = \f. f S7 S6 S5 S4 S3 S2 S1 S0 in
+    pair sum C8
+
+let addI8 = \A. \B. cla8 A B fls
+
+let i8ToChurchNat = \N.
+    let N0 = b0I8 N in
+    let N1 = b1I8 N in
+    let N2 = b2I8 N in
+    let N3 = b3I8 N in
+    let N4 = b4I8 N in
+    let N5 = b5I8 N in
+    let N6 = b6I8 N in
+    let N7 = b7I8 N in
+    let n0 = bitToChurchNat N0 in
+    let n1 = times c2 (bitToChurchNat N1) in
+    let n2 = times (times c2 c2) (bitToChurchNat N2) in
+    let n3 = times (times c2 (times c2 c2)) (bitToChurchNat N3) in
+    let n4 = times (times c2 (times c2 (times c2 c2))) (bitToChurchNat N4) in
+    let n5 = times (times c2 (times c2 (times c2 (times c2 c2)))) (bitToChurchNat N5) in
+    let n6 = times (times c2 (times c2 (times c2 (times c2 (times c2 c2))))) (bitToChurchNat N6) in
+    let n7 = times (times c2 (times c2 (times c2 (times c2 (times c2 (times c2 c2)))))) (bitToChurchNat N7) in
+    plus n0 (plus n1 (plus n2 (plus n3 (plus n4 (plus n5 (plus n6 n7))))))
+
+let dispI8 = \N.
+    let N0 = b0I8 N in
+    let N1 = b1I8 N in
+    let N2 = b2I8 N in
+    let N3 = b3I8 N in
+    let N4 = b4I8 N in
+    let N5 = b5I8 N in
+    let N6 = b6I8 N in
+    let N7 = b7I8 N in
+    (dispBit N7, dispBit N6, dispBit N5, dispBit N4,
+     dispBit N3, dispBit N2, dispBit N1, dispBit N0)
+
+let natsToI8 = \b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0.
+    \f. f (natToBit b7) (natToBit b6) (natToBit b5) (natToBit b4)
+          (natToBit b3) (natToBit b2) (natToBit b1) (natToBit b0)
+
+# 8-bit constants
+let i8_0 = natsToI8 0 0 0 0 0 0 0 0
+let i8_10 = natsToI8 0 0 0 0 1 0 1 0
+let i8_100 = natsToI8 0 1 1 0 0 1 0 0
+
+# Subtraction: A - B (assumes A >= B, no underflow check)
+let subI8 = \A. \B.
+    let notB = \f. f (not (b7I8 B)) (not (b6I8 B)) (not (b5I8 B)) (not (b4I8 B))
+                     (not (b3I8 B)) (not (b2I8 B)) (not (b1I8 B)) (not (b0I8 B)) in
+    let negB = fst (cla8 notB i8_0 tru) in
+    fst (cla8 A negB fls)
+
+# Compare: A >= B
+let geI8 = \A. \B.
+    let diff = subI8 A B in
+    not (b7I8 diff)  # if MSB is 0, then A >= B (no borrow)
+
+# Repeat subtraction to get quotient and remainder
+# divmod N D = (q, r) where N = q*D + r and r < D
+let divmodI8 = \N. \D.
+    fix (\rec. \n. \q.
+        (geI8 n D)
+            (rec (subI8 n D) (fst (cla8 q i8_0 tru)))
+            (pair q n)
+    ) N i8_0
+
+# Convert I8 to 3-digit unsigned decimal (d2 d1 d0 where di is Church numeral 0-9)
+let i8ToDecimal3 = \N.
+    let qr1 = divmodI8 N i8_100 in
+    let d2_i8 = fst qr1 in
+    let rem1 = snd qr1 in
+    let qr2 = divmodI8 rem1 i8_10 in
+    let d1_i8 = fst qr2 in
+    let d0_i8 = snd qr2 in
+    let i8ToChurchDecimalDigit = \N.
+        let b0 = b0I8 N in
+        let b1 = b1I8 N in
+        let b2 = b2I8 N in
+        let b3 = b3I8 N in
+        let t0 = b0 c1 c0 in
+        let t1 = b1 c2 c0 in
+        let t2 = b2 c4 c0 in
+        let t3 = b3 c8 c0 in
+        plus t0 (plus t1 (plus t2 t3))
+    in
+    let d2 = i8ToChurchDecimalDigit d2_i8 in
+    let d1 = i8ToChurchDecimalDigit d1_i8 in
+    let d0 = i8ToChurchDecimalDigit d0_i8 in
+    \f. f d2 d1 d0

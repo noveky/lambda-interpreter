@@ -5,7 +5,7 @@ open Ast
 %token <string> IDENT
 %token <int> NUMBER
 %token <string> STRING
-%token LAMBDA DOT LPAREN RPAREN DSEMICOLON SEMICOLON COMMA LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED TUPLE PRINT PRINTLN PRINTBYTE INCLUDE EVAL STEP
+%token LAMBDA DOT LPAREN RPAREN DSEMICOLON SEMICOLON COMMA LET EQUAL IN TRUE FALSE IF THEN ELSE ISZERO SUCC PRED PRINT PRINTLN PRINTBYTE INCLUDE EVAL STEP
 %token EOF
 
 %right IN
@@ -46,7 +46,6 @@ app_expr:
   | PRINT atom  { Print $2 }
   | PRINTLN atom  { PrintLn $2 }
   | PRINTBYTE atom  { PrintByte $2 }
-  | TUPLE atom  { Tuple [$2] }
   | app_expr atom  { App ($1, $2) }
   | atom  { $1 }
 

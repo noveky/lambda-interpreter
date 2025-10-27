@@ -1,9 +1,11 @@
-@include "lib/church.lam";;
+@include "lib/church"
 
-let factorial = fix (λfct. λn. (equal n c0) c1 (times n (fct (prd n))));;
+let factorial = fix (\fct. \n. (equal n c0) c1 (times n (fct (prd n))))
 
 # Evaluate factorial of 1 with step output
-@step realnat (factorial c1);;
+@step
+realnat (factorial c1)
 
 # Evaluate factorial of 6
-@eval realnat (factorial (churchnat 6));;
+@eval
+realnat (factorial (churchnat 6))

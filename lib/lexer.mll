@@ -16,18 +16,17 @@ rule main = parse
   | "let"                   { LET }
   | "="                     { EQUAL }
   | "in"                    { IN }
-  | "@true"                 { TRUE }
-  | "@false"                { FALSE }
-  | "@if"                   { IF }
-  | "@then"                 { THEN }
-  | "@else"                 { ELSE }
-  | "@iszero"               { ISZERO }
-  | "@succ"                 { SUCC }
-  | "@pred"                 { PRED }
-  | "@print"                { PRINT }
-  | "@println"              { PRINTLN }
-  | "@printbyte"             { PRINTBYTE }
-  | "@tuple"                { TUPLE }
+  | "TRUE"                  { TRUE }
+  | "FALSE"                 { FALSE }
+  | "IF"                    { IF }
+  | "THEN"                  { THEN }
+  | "ELSE"                  { ELSE }
+  | "ISZERO"                { ISZERO }
+  | "SUCC"                  { SUCC }
+  | "PRED"                  { PRED }
+  | "PRINT"                 { PRINT }
+  | "PRINTLN"               { PRINTLN }
+  | "PRINTBYTE"             { PRINTBYTE }
   | ['a'-'z''A'-'Z''_']['a'-'z''A'-'Z''0'-'9''_''\'']*
                             { IDENT (Lexing.lexeme lexbuf) }
   | '0' | ['1'-'9']['0'-'9']* as n

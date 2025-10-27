@@ -1,9 +1,21 @@
-@include "lib/church.lam"
+@include "lib/church"
 
-let natToBit = \n. (churchbool (@iszero n)) fls tru
+# 32-bit tests
+let i32_12345 = natsToI32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 1 1 1 0 0 1
 
-let natsToBin8 = \b7. \b6. \b5. \b4. \b3. \b2. \b1. \b0.
-    \f. f (natToBit b7) (natToBit b6) (natToBit b5) (natToBit b4)
-          (natToBit b3) (natToBit b2) (natToBit b1) (natToBit b0)
-
-@eval @printbyte (natsToBin8 0 1 0 0 0 0 0 1); @println ""
+@step
+let d10_12345 = i32ToDecimal10 i32_12345 in
+let d9D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d9) in
+let d8D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d8) in
+let d7D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d7) in
+let d6D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d6) in
+let d5D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d5) in
+let d4D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d4) in
+let d3D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d3) in
+let d2D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d2) in
+let d1D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d1) in
+let d0D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d0) in
+(realnat (d9D10 d10_12345), realnat (d8D10 d10_12345), realnat (d7D10 d10_12345),
+ realnat (d6D10 d10_12345), realnat (d5D10 d10_12345), realnat (d4D10 d10_12345),
+ realnat (d3D10 d10_12345), realnat (d2D10 d10_12345), realnat (d1D10 d10_12345),
+ realnat (d0D10 d10_12345))

@@ -1,0 +1,6 @@
+@include "lib/church/basic.lam"
+
+# 1-bit binary number utilities
+let bitToChurchNat = \b. b c1 c0
+let dispBit = \b. realnat (bitToChurchNat b)
+let natToBit = \n. (churchbool (ISZERO n)) fls tru
