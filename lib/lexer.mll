@@ -36,9 +36,11 @@ rule main = parse
   | "@include"              { INCLUDE }
   | "@eval"                 { EVAL }
   | "@step"                 { STEP }
+  | "@exit"                 { EXIT }
   | eof                     { EOF }
   | _ as c                  {
       let pos = lexbuf.Lexing.lex_curr_p in
-      failwith (Printf.sprintf "Lexical error: unexpected character '%c' at line %d, column %d"
-        c pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1))
+      let filename = pos.pos_fname in
+      failwith (Printf.sprintf "Lexical error at %s:%d:%d: unexpected character ‘%c’"
+        filename pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) c)
     }

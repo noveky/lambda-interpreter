@@ -84,7 +84,7 @@ let rec exec_file env filename ic =
     { lexbuf.Lexing.lex_curr_p with pos_fname = filename };
   try
     let stmts = Parser.main Lexer.main lexbuf in
-    let env' = exec_stmts [] stmts in
+    let env' = exec_stmts env stmts in
     close_in ic;
     env' @ env
   with Parser.Error ->
@@ -121,7 +121,7 @@ let rec exec_file env filename ic =
            filename line col error_context)
     else
       failwith
-        (Printf.sprintf "Syntax error at %s:%d:%d: unexpected '%s'%s" filename
+        (Printf.sprintf "Syntax error at %s:%d:%d: unexpected ‘%s’%s" filename
            line col token error_context)
 
 and exec_stmts env stmts =
@@ -132,7 +132,10 @@ and exec_stmts env stmts =
     exec_stmts env' rest
 
 and exec_stmt env = function
-  | Assign (x, e) -> (x, eval env e) :: env
+  | Assign (x, e) ->
+    let e' = eval env e in
+    print_endline (Printf.sprintf "let %s = %s" x (Ast.string_of_expr false e'));
+    (x, e') :: env
   | Include path ->
     let actual_path =
       if Sys.is_directory path then
@@ -153,21 +156,23 @@ and exec_stmt env = function
       included_files := normalized_path :: !included_files;
       exec_file env actual_path (open_in actual_path))
   | Eval e ->
-    print_endline ("▶ " ^ Ast.string_of_expr false e);
+    prerr_endline ("▶ " ^ Ast.string_of_expr false e);
     let e' = eval env e in
     print_endline (Ast.string_of_expr true e');
     env
   | Step e ->
-    print_endline ("▸▸ " ^ Ast.string_of_expr false e);
+    prerr_endline ("▸▸ " ^ Ast.string_of_expr false e);
     let rec step_loop expr =
       let expr' = step env expr in
       if expr' = expr then expr'
       else (
-        print_endline (">> " ^ Ast.string_of_expr false expr');
+        prerr_endline (">> " ^ Ast.string_of_expr false expr');
         step_loop expr')
     in
-    let _ = step_loop e in
+    let e' = step_loop e in
+    print_endline (Ast.string_of_expr true e');
     env
+  | Exit n -> exit n
 
 and eval env e =
   let e' = step env e in

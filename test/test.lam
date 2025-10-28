@@ -1,9 +1,18 @@
 @include "lib/church"
 
+let i8_48 = natsToI8 0 0 1 1 0 0 0 0
+
+@eval
+let d3_48 = i8ToDecimal3 i8_48 in
+let d2D3 = \n. n (\d2. \d1. \d0. d2) in
+let d1D3 = \n. n (\d2. \d1. \d0. d1) in
+let d0D3 = \n. n (\d2. \d1. \d0. d0) in
+(realnat (d2D3 d3_48), realnat (d1D3 d3_48), realnat (d0D3 d3_48))
+
 # 32-bit tests
 let i32_12345 = natsToI32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 1 1 1 0 0 1
 
-@step
+@eval
 let d10_12345 = i32ToDecimal10 i32_12345 in
 let d9D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d9) in
 let d8D10 = \n. n (\d9. \d8. \d7. \d6. \d5. \d4. \d3. \d2. \d1. \d0. d8) in

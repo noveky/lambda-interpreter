@@ -3,6 +3,7 @@ type stmt =
   | Include of string
   | Eval of expr
   | Step of expr
+  | Exit of int
 
 and expr =
   | Var of string
