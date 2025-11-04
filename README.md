@@ -9,6 +9,5 @@ dune install
 ## Usage
 
 ```bash
-cd test
-lambda main.lam
+make test demo  # interprets test/demo.lam, working in test/
 ```
